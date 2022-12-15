@@ -1,0 +1,37 @@
+// 날씨 데이터중 필요한 데이터만 남기고
+// 남은 데이터는 시간대 분류 기준에 따라 평균을 낸 값으로 집어넣음
+
+CREATE TABLE temp_weather (col_value STRING) STORED AS TEXTFILE;
+LOAD DATA INPATH '/user/maria_dev/dbtermproject/weather_feb.csv' OVERWRITE INTO TABLE temp_weather;
+ALTER TABLE temp_weather SET TBLPROPERTIES('serialization.encoding'='euc-kr');
+
+CREATE TABLE weather_feb (weather_gu_id INT, weather_date DATE, weather_hour STRING, temperature FLOAT, wind_speed FLOAT, precipitation FLOAT,humidity FLOAT);
+INSERT OVERWRITE TABLE weather_feb
+SELECT 
+	CAST(regexp_extract(col_value, '^(?:([^,]*),?){1}', 1) AS INT) weather_gu_id,
+	CAST(replace(split(regexp_extract(col_value, '^(?:([^,]*),?){3}', 1)," ")[0],".","-") AS DATE) weather_date,
+	CASE
+		WHEN CAST(split(split(regexp_extract(col_value, '^(?:([^,]*),?){3}', 1)," ")[1],":")[0] AS INT) between 2 and 5 THEN 'DA'
+		WHEN CAST(split(split(regexp_extract(col_value, '^(?:([^,]*),?){3}', 1)," ")[1],":")[0] AS INT) between 6 and 9 THEN 'MO'
+		WHEN CAST(split(split(regexp_extract(col_value, '^(?:([^,]*),?){3}', 1)," ")[1],":")[0] AS INT) between 10 and 13 THEN 'NO'
+		WHEN CAST(split(split(regexp_extract(col_value, '^(?:([^,]*),?){3}', 1)," ")[1],":")[0] AS INT) between 14 and 17 THEN 'AN'
+		WHEN CAST(split(split(regexp_extract(col_value, '^(?:([^,]*),?){3}', 1)," ")[1],":")[0] AS INT) between 18 and 21 THEN 'EV'
+		ELSE 'NI'
+	END AS weather_hour,
+	CAST(regexp_extract(col_value, '^(?:([^,]*),?){4}',1) AS FLOAT) temperature,
+	CAST(regexp_extract(col_value, '^(?:([^,]*),?){5}',1) AS FLOAT) wind_speed,
+	CAST(regexp_extract(col_value, '^(?:([^,]*),?){6}',1) AS FLOAT) precipitation,
+	CAST(regexp_extract(col_value, '^(?:([^,]*),?){7}',1) AS FLOAT) humidity
+FROM temp_weather;
+ALTER TABLE weather_feb set tblproperties("skip.header.line.count"="1");
+
+create table weader_group_feb as 
+select weather_gu_id, weather_date, weather_hour, 
+round(avg(temperature),2) as avg_temperature, 
+round(avg(wind_speed),2) as avg_wind_speed,
+round(avg(precipitation),2) as avg_precipitation, 
+round(avg(humidity),2) as avg_humidity
+from weather_feb 
+group by weather_gu_id, weather_date, weather_hour 
+ORDER BY weather_gu_id,weather_date, weather_hour
+ALTER TABLE weader_group_feb set tblproperties("skip.header.line.count"="1");

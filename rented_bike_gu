@@ -1,0 +1,7 @@
+// 따릉이가 가장 많이 대여된 구를 알기 위한 쿼리
+// 더불어 다른 구의 따릉이는 얼마나 대여되었나를 알기 위함
+
+SELECT location_gu_id as location_gu_id,count(*) as rents_count_gu
+FROM location_with_gu, rental_feb
+ON (rental_feb.rental_location_id = loction_with_gu.location_id)
+GROUP BY location_gu_id;
