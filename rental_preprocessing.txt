@@ -1,0 +1,18 @@
+CREATE TABLE temp_rentals(col_value STRING) STORED AS TEXTFILE;
+LOAD DATA INPATH '/user/maria_dev/dbtermproject/rental22_02.csv' OVERWRITE INTO TABLE temp_locations;
+ALTER TABLE temp_rentals SET TBLPROPERTIES('serialization.encoding'='euc-kr');
+CREATE TABLE rental_feb(rental_date DATE, rental_hour INT, retal_location_id INT);
+INSERT OVERWRITE TABLE rental_feb
+SELECT 
+	CAST(split(regexp_extract(t1.col_value, '^(?:([^,]*),?){2}', 1)," ")[0] AS DATE) as rental_date,
+	CASE
+		WHEN CAST(split(split(regexp_extract(t1.col_value, '^(?:([^,]*),?){2}', 1)," ")[1],":")[0] AS INT) between 2 and 5 THEN 'DA'
+		WHEN CAST(split(split(regexp_extract(t1.col_value, '^(?:([^,]*),?){2}', 1)," ")[1],":")[0] AS INT) between 6 and 9 THEN 'MO'
+		WHEN CAST(split(split(regexp_extract(t1.col_value, '^(?:([^,]*),?){2}', 1)," ")[1],":")[0] AS INT) between 10 and 13 THEN 'NO'
+		WHEN CAST(split(split(regexp_extract(t1.col_value, '^(?:([^,]*),?){2}', 1)," ")[1],":")[0] AS INT) between 14 and 17 THEN 'AN'
+		WHEN CAST(split(split(regexp_extract(t1.col_value, '^(?:([^,]*),?){2}', 1)," ")[1],":")[0] AS INT) between 18 and 21 THEN 'EV'
+		ELSE 'NI'
+	END AS rental_hour,
+	CAST(regexp_extract(t1.col_value, '^(?:([^,]*),?){3}', 1) AS INT) rental_location_id
+FROM (SELECT regexp_replace(col_value, '\"', '') as col_value FROM temp_rentals) t1;
+
