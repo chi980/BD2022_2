@@ -1,0 +1,17 @@
+SELECT t3.rental_location_id as rental_location_id, t3.cnt as cnt, location_with_gu.location_name as rental_location_name
+FROM
+(SELECT t2.rental_location_id as rental_location_id, count(*) as cnt
+FROM (SELECT 
+	CAST(split(regexp_extract(t1.col_value, '^(?:([^,]*),?){2}', 1)," ")[0] AS DATE) as rental_date,
+	CASE
+		WHEN CAST(split(split(regexp_extract(t1.col_value, '^(?:([^,]*),?){2}', 1)," ")[1],":")[0] AS INT) between 2 and 6 THEN 'DA'
+		WHEN CAST(split(split(regexp_extract(t1.col_value, '^(?:([^,]*),?){2}', 1)," ")[1],":")[0] AS INT) between 6 and 10 THEN 'MO'
+		WHEN CAST(split(split(regexp_extract(t1.col_value, '^(?:([^,]*),?){2}', 1)," ")[1],":")[0] AS INT) between 10 and 14 THEN 'NO'
+		WHEN CAST(split(split(regexp_extract(t1.col_value, '^(?:([^,]*),?){2}', 1)," ")[1],":")[0] AS INT) between 14 and 18 THEN 'AN'
+		WHEN CAST(split(split(regexp_extract(t1.col_value, '^(?:([^,]*),?){2}', 1)," ")[1],":")[0] AS INT) between 18 and 22 THEN 'EV'
+		ELSE 'NI'
+	END AS rental_hour,
+	CAST(regexp_extract(t1.col_value, '^(?:([^,]*),?){3}', 1) AS INT) rental_location_id
+FROM (SELECT regexp_replace(col_value, '\"', '') as col_value FROM temp_rentals) t1) t2
+GROUP BY t2.rental_location_id )t3, location_with_gu
+where t3.rental_location_id==location_with_gu.location_id;

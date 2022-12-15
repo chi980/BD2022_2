@@ -1,0 +1,3 @@
+SELECT location_gu_id as location_gu_id, sum(locations_stand) as stand_sum
+FROM location_with_gu
+GROUP BY location_gu_id;

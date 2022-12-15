@@ -1,0 +1,47 @@
+CREATE TABLE temp_locations (col_value STRING) STORED AS TEXTFILE;
+LOAD DATA INPATH '/user/maria_dev/dbtermproject/location_info.csv' OVERWRITE INTO TABLE temp_locations;
+ALTER TABLE temp_locations SET TBLPROPERTIES('serialization.encoding'='euc-kr');
+CREATE TABLE locations (location_id INT, location_name STRING, location_gu STRING, location_stand INT);\INSERT OVERWRITE TABLE locations
+SELECT
+	regexp_extract(col_value, '^(?:([^,]*),?){1}', 1) location_id,
+	regexp_extract(col_value, '^(?:([^,]*),?){2}', 1) location_name,
+	regexp_extract(col_value, '^(?:([^,]*),?){3}', 1) location_gu,
+	coalesce(CAST(regexp_extract(col_value,'^(?:([^,]*),?){8}',1) AS INT),0)+coalesce(CAST(regexp_extract(col_value,'^(?:([^,]*),?){9}',1) AS INT),0) location_stand
+FROM temp_locations;
+ALTER TABLE locations set tblproperties("skip.header.line.count"="1");
+ALTER TABLE locations SET TBLPROPERTIES('serialization.encoding'='euc-kr');
+CREATE TABLE location_with_gu (location_id INT, location_name STRING, location_gu_id INT, location_stand INT);
+INSERT OVERWRITE TABLE location_with_gu
+SELECT
+	location_id,
+	location_name,
+	CASE
+		WHEN location_gu LIKE '마포구%' THEN 411
+		WHEN location_gu LIKE '서대문구%' THEN 412
+		WHEN location_gu LIKE '영등포구%' THEN 510
+		WHEN location_gu LIKE '동작구%' THEN 889
+		WHEN location_gu LIKE '중구%' THEN 419
+		WHEN location_gu LIKE '종로구%' THEN 422
+		WHEN location_gu LIKE '광진구%' THEN 413
+		WHEN location_gu LIKE '성동구%' THEN 421
+		WHEN location_gu LIKE '동대문구%' THEN 408
+		WHEN location_gu LIKE '양천구%' THEN 405
+		WHEN location_gu LIKE '용산구%' THEN 415
+		WHEN location_gu LIKE '은평구%' THEN 416
+		WHEN location_gu LIKE '강동구%' THEN 402
+		WHEN location_gu LIKE '강서구%' THEN 404
+		WHEN location_gu LIKE '송파구%' THEN 403
+		WHEN location_gu LIKE '성북구%' THEN 414
+		WHEN location_gu LIKE '중랑구%' THEN 409
+		WHEN location_gu LIKE '강북구%' THEN 424
+		WHEN location_gu LIKE '노원구%' THEN 407
+		WHEN location_gu LIKE '도봉구%' THEN 406
+		WHEN location_gu LIKE '금천구%' THEN 417
+		WHEN location_gu LIKE '구로구%' THEN 423
+		WHEN location_gu LIKE '관악구%' THEN 509
+		WHEN location_gu LIKE '서초구%' THEN 401
+		WHEN location_gu LIKE '강남구%' THEN 400
+	END AS location_gu_id,
+	location_stand
+FROM locations
+ALTER TABLE location_with_gu set tblproperties("skip.header.line.count"="1");
